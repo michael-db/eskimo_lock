@@ -38,7 +38,7 @@ class LockingTest(unittest.TestCase):
         obj = ('my', 'lock')
         lock1 = eskimo.Lock(obj, timeout=0.0)
         lock1.acquire()
-        # re-entrant eskimo not supported
+        # re-entrant locking not supported
         self.assertRaises(eskimo.Timeout, lock1.acquire)
         self.assertRaises(eskimo.Timeout, lock1.timeout(0.1).acquire)
         obj_copy = obj + tuple()
@@ -69,7 +69,7 @@ class LockingTest(unittest.TestCase):
         t = threading.Timer(0.5, lambda: lock.release())
 
         # The existence of another thread waiting to lock another object
-        # does not cause an undue delay in unbeskimo here (if release()
+        # does not cause an undue delay in unblocking here (if release()
         # used notify() instead of notify_all(), it would).
         lock2 = eskimo.Lock('b')
         lock2.acquire()
@@ -112,7 +112,7 @@ class LockingTest(unittest.TestCase):
         lock23.release()
 
     def test_timeout_release(self):
-        # Unbeskimo of writer on timeout of blocked higher priority writer
+        # Unblocking of writer on timeout of blocked higher priority writer
         # waiting for a slow reader.
         lock1 = eskimo.Lock(1, shared=True)
         lock12 = eskimo.Lock(1, 2)
@@ -126,7 +126,7 @@ class LockingTest(unittest.TestCase):
         t = threading.Thread(target=lambda: try_to_lock(lock12, 0.3))
 
         # The existence of another thread waiting to lock another object
-        # does not cause an undue delay in unbeskimo here (if release()
+        # does not cause an undue delay in unblocking here (if release()
         # used notify() instead of notify_all(), it would).
         locko = eskimo.Lock('other')
         locko.acquire()
@@ -201,7 +201,7 @@ class LockingTest(unittest.TestCase):
         self.assertEqual(len(read), num_readers)
 
     def test_shared_priority_multiple(self):
-        """Shared eskimo with simultaneous eskimo of multiple objects.
+        """Shared locking with simultaneous locking of multiple objects.
         """
         # This illustrates the priority of the first writer to seek a
         # lock on an object when blocked on a reader, EVEN OVER a later
@@ -255,11 +255,11 @@ class LockingTest(unittest.TestCase):
 
     def test_return_value_and_timeout(self):
         """acquire() returns the time remaining;
-        value of timeout relevant only on beskimo.
+        value of timeout relevant only on blocking.
         """
-        # aggregate timer for locks serially acquired, no beskimo
+        # aggregate timer for locks serially acquired, no blocking
         # (a) timer = None (no timeout) (b) timer = 0, (c) timer > 0
-        # (d) timer < 0: timeout ignored when beskimo not required
+        # (d) timer < 0: timeout ignored when blocking not required
         for shared in (False, True):
             locks = [eskimo.Lock(i, shared=shared) for i in range(100)]
             for timeout in (None, 0, 1, -1):
@@ -269,7 +269,7 @@ class LockingTest(unittest.TestCase):
                     lock.release()
                 self.assertEqual(countdown, timeout)
 
-        # aggregate timer for locks serially acquired, beskimo
+        # aggregate timer for locks serially acquired, blocking
         # (a) timeout None (b) timeout > 0, success
         for timeout, test in ((None, lambda x: x is None),
                 (0.5, lambda x: 0 < x < 0.1)):
@@ -289,7 +289,7 @@ class LockingTest(unittest.TestCase):
                     lock.release()
             self.assertTrue(test(remaining))
 
-        # beskimo required (failure)
+        # blocking required (failure)
         # (a) timeout < 0  (b) timeout = 0
         for timeout in (-1, 0):
             lock = eskimo.Lock('gate')
